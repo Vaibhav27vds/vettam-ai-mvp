@@ -26,10 +26,16 @@ import { FontSize } from '@tiptap/extension-text-style'
 interface ToolbarProps {
   editor: Editor | null
   onPaperSizeChange?: (size: { name: string, width: number, height: number }) => void
+  onHeaderFooterChange?: (type: 'headerLeft' | 'headerRight' | 'footerLeft' | 'footerRight', value: string) => void
 }
 
-const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
+const Toolbar = ({ editor, onPaperSizeChange, onHeaderFooterChange }: ToolbarProps) => {
   const [activeMode, setActiveMode] = useState<'text' | 'page'>('text')
+  const [showHeaderFooterDialog, setShowHeaderFooterDialog] = useState<{
+    show: boolean;
+    type: 'headerLeft' | 'headerRight' | 'footerLeft' | 'footerRight' | null;
+  }>({ show: false, type: null })
+  const [headerFooterInput, setHeaderFooterInput] = useState('')
 
   if (!editor) {
     return null
@@ -64,6 +70,27 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
     { value: 'h5', label: 'Heading 5', action: () => editor.chain().focus().toggleHeading({ level: 5 }).run() },
     { value: 'h6', label: 'Heading 6', action: () => editor.chain().focus().toggleHeading({ level: 6 }).run() },
   ]
+
+  // Function to handle header/footer addition
+  const handleHeaderFooterAdd = (type: 'headerLeft' | 'headerRight' | 'footerLeft' | 'footerRight') => {
+    setShowHeaderFooterDialog({ show: true, type })
+    setHeaderFooterInput('')
+  }
+
+  // Function to confirm header/footer addition
+  const confirmHeaderFooterAdd = () => {
+    if (showHeaderFooterDialog.type && headerFooterInput.trim() && onHeaderFooterChange) {
+      onHeaderFooterChange(showHeaderFooterDialog.type, headerFooterInput.trim())
+    }
+    setShowHeaderFooterDialog({ show: false, type: null })
+    setHeaderFooterInput('')
+  }
+
+  // Function to cancel header/footer dialog
+  const cancelHeaderFooterAdd = () => {
+    setShowHeaderFooterDialog({ show: false, type: null })
+    setHeaderFooterInput('')
+  }
 
   // Function to get current heading level
   const getCurrentHeading = () => {
@@ -122,6 +149,56 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
       ))}
     </select>
   )
+
+  // Header/Footer Dialog Component
+  const HeaderFooterDialog = () => {
+    if (!showHeaderFooterDialog.show) return null
+
+    const getDialogTitle = () => {
+      switch (showHeaderFooterDialog.type) {
+        case 'headerLeft': return 'Add Left Header'
+        case 'headerRight': return 'Add Right Header'
+        case 'footerLeft': return 'Add Left Footer'
+        case 'footerRight': return 'Add Right Footer'
+        default: return 'Add Header/Footer'
+      }
+    }
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+          <h3 className="text-lg font-semibold mb-4">{getDialogTitle()}</h3>
+          <input
+            type="text"
+            value={headerFooterInput}
+            onChange={(e) => setHeaderFooterInput(e.target.value)}
+            placeholder="Enter header/footer text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#694C80] focus:border-transparent"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') confirmHeaderFooterAdd()
+              if (e.key === 'Escape') cancelHeaderFooterAdd()
+            }}
+          />
+          <div className="flex justify-end space-x-3 mt-4">
+            <button
+              onClick={cancelHeaderFooterAdd}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmHeaderFooterAdd}
+              disabled={!headerFooterInput.trim()}
+              className="px-4 py-2 bg-[#694C80] text-white rounded-md hover:bg-[#5a3f6b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderTextTools = () => (
     <div className="flex items-center space-x-1 flex-wrap">
@@ -300,10 +377,7 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
 
       {/* Headers & Footers */}
       <ToolbarButton
-        onClick={() => {
-          // Implement add left header logic
-          console.log('Add left header')
-        }}
+        onClick={() => handleHeaderFooterAdd('headerLeft')}
         title="Add Left Header"
       >
         <div className="flex items-center space-x-1">
@@ -313,10 +387,7 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
       </ToolbarButton>
       
       <ToolbarButton
-        onClick={() => {
-          // Implement add right header logic
-          console.log('Add right header')
-        }}
+        onClick={() => handleHeaderFooterAdd('headerRight')}
         title="Add Right Header"
       >
         <div className="flex items-center space-x-1">
@@ -326,10 +397,7 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
       </ToolbarButton>
       
       <ToolbarButton
-        onClick={() => {
-          // Implement add left footer logic
-          console.log('Add left footer')
-        }}
+        onClick={() => handleHeaderFooterAdd('footerLeft')}
         title="Add Left Footer"
       >
         <div className="flex items-center space-x-1">
@@ -339,10 +407,7 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
       </ToolbarButton>
       
       <ToolbarButton
-        onClick={() => {
-          // Implement add right footer logic
-          console.log('Add right footer')
-        }}
+        onClick={() => handleHeaderFooterAdd('footerRight')}
         title="Add Right Footer"
       >
         <div className="flex items-center space-x-1">
@@ -380,39 +445,44 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
   )
 
   return (
-    <div className="w-full bg-[#F2EDF7] border-b border-gray-200">
-      {/* Mode Selection */}
-      <div className="flex items-center px-4 py-2 border-b border-gray-200">
-        <ToolbarButton
-          onClick={() => setActiveMode('text')}
-          isActive={activeMode === 'text'}
-          title="Text Tools"
-        >
-          <div className="flex items-center space-x-2">
-            <Type size={16} />
-            <span className="text-sm font-medium">Text</span>
-          </div>
-        </ToolbarButton>
-        
-        <Separator />
-        
-        <ToolbarButton
-          onClick={() => setActiveMode('page')}
-          isActive={activeMode === 'page'}
-          title="Page Tools"
-        >
-          <div className="flex items-center space-x-2">
-            <FileText size={16} />
-            <span className="text-sm font-medium">Page</span>
-          </div>
-        </ToolbarButton>
-      </div>
+    <>
+      <div className="w-full bg-[#F2EDF7] border-b border-gray-200">
+        {/* Mode Selection */}
+        <div className="flex items-center px-4 py-2 border-b border-gray-200">
+          <ToolbarButton
+            onClick={() => setActiveMode('text')}
+            isActive={activeMode === 'text'}
+            title="Text Tools"
+          >
+            <div className="flex items-center space-x-2">
+              <Type size={16} />
+              <span className="text-sm font-medium">Text</span>
+            </div>
+          </ToolbarButton>
+          
+          <Separator />
+          
+          <ToolbarButton
+            onClick={() => setActiveMode('page')}
+            isActive={activeMode === 'page'}
+            title="Page Tools"
+          >
+            <div className="flex items-center space-x-2">
+              <FileText size={16} />
+              <span className="text-sm font-medium">Page</span>
+            </div>
+          </ToolbarButton>
+        </div>
 
-      {/* Tools */}
-      <div className="px-4 py-3 overflow-x-auto">
-        {activeMode === 'text' ? renderTextTools() : renderPageTools()}
+        {/* Tools */}
+        <div className="px-4 py-3 overflow-x-auto">
+          {activeMode === 'text' ? renderTextTools() : renderPageTools()}
+        </div>
       </div>
-    </div>
+      
+      {/* Header/Footer Dialog */}
+      <HeaderFooterDialog />
+    </>
   )
 }
 

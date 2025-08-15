@@ -18,11 +18,18 @@ const EditorComponent = () => {
     const [currentPageSize, setCurrentPageSize] = useState({ name: 'A4', width: 816, height: 1056 })
     const [leftMargin, setLeftMargin] = useState(56)
     const [rightMargin, setRightMargin] = useState(56)
+    const [headerFooterConfig, setHeaderFooterConfig] = useState({
+        headerLeft: "",
+        headerRight: "", 
+        footerLeft: "",
+        footerRight: "{page}"
+    })
+    const [editorContent, setEditorContent] = useState('<p>Start here</p>')
 
     const editor = useEditor({
          editorProps:{
         attributes: {
-            style: 'padding-left:56px; padding-right:56px;',
+            style: `padding-left:${leftMargin}px; padding-right:${rightMargin}px;`,
             class: 'focus:outline-none print:border-0 border border-[#c7c7c7] bg-white cursor-text h-full prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none'
         }
     },
@@ -47,10 +54,10 @@ const EditorComponent = () => {
               pageBreakBackground: "#f9fbfd",  
               pageHeaderHeight: 50,   
               pageFooterHeight: 50,   
-              footerRight: "{page}",  
-              footerLeft: "",         
-              headerRight: "Header Right",        
-              headerLeft: "Header Left",         
+              footerRight: headerFooterConfig.footerRight,  
+              footerLeft: headerFooterConfig.footerLeft,         
+              headerRight: headerFooterConfig.headerRight,        
+              headerLeft: headerFooterConfig.headerLeft,         
               marginTop: 50,           
               marginBottom: 50,        
               marginLeft: leftMargin,         
@@ -58,66 +65,35 @@ const EditorComponent = () => {
               contentMarginTop: 0,    
               contentMarginBottom: 0, 
             })
-
         ],
-    content: '<p>Start here</p>',
-    immediatelyRender: false,
-    })
-
-    // Update margins in the editor
-    const updateMargins = (left: number, right: number) => {
-        if (editor) {
-            editor.extensionManager.extensions.forEach((extension) => {
-                if (extension.name === 'paginationPlus') {
-                    extension.options.marginLeft = left
-                    extension.options.marginRight = right
-                }
-            })
-            
-            // Update editor padding
-            const editorContainer = editor.view.dom as HTMLElement
-            if (editorContainer) {
-                editorContainer.style.paddingLeft = `${left}px`
-                editorContainer.style.paddingRight = `${right}px`
-            }
-            
-            // Force editor to recalculate
-            editor.view.updateState(editor.state)
+        content: editorContent,
+        immediatelyRender: false,
+        onUpdate: ({ editor }) => {
+            setEditorContent(editor.getHTML())
         }
+    }, [headerFooterConfig, currentPageSize, leftMargin, rightMargin]) // Dependencies that trigger editor recreation
+
+    // Handle header/footer changes
+    const handleHeaderFooterChange = (type: 'headerLeft' | 'headerRight' | 'footerLeft' | 'footerRight', value: string) => {
+        const newConfig = { ...headerFooterConfig, [type]: value }
+        setHeaderFooterConfig(newConfig)
+        // Editor will automatically recreate with new config due to dependency array
     }
 
     // Handle margin changes from ruler
     const handleLeftMarginChange = (newLeftMargin: number) => {
         setLeftMargin(newLeftMargin)
-        updateMargins(newLeftMargin, rightMargin)
+        // Editor will automatically recreate with new margins due to dependency array
     }
 
     const handleRightMarginChange = (newRightMargin: number) => {
         setRightMargin(newRightMargin)
-        updateMargins(leftMargin, newRightMargin)
+        // Editor will automatically recreate with new margins due to dependency array
     }
 
     const handlePageSizeChange = (newSize: { name: string, width: number, height: number }) => {
         setCurrentPageSize(newSize)
-        
-        if (editor) {
-            // Reconfigure the PaginationPlus extension
-            editor.extensionManager.extensions.forEach((extension) => {
-                if (extension.name === 'paginationPlus') {
-                    extension.options.pageHeight = newSize.height
-                }
-            })
-            
-            // Update container styles
-            const editorContainer = editor.view.dom.closest('.prose') as HTMLElement
-            if (editorContainer) {
-                editorContainer.style.width = `${newSize.width}px`
-                editorContainer.style.minHeight = `${newSize.height}px`
-            }
-            
-            // Force editor to recalculate
-            editor.view.updateState(editor.state)
-        }
+        // Editor will automatically recreate with new page size due to dependency array
     }
 
     // Update the outer container width when page size changes
@@ -132,7 +108,11 @@ const EditorComponent = () => {
 
   return (
     <>
-      <Toolbar editor={editor} onPaperSizeChange={handlePageSizeChange} />
+      <Toolbar 
+        editor={editor} 
+        onPaperSizeChange={handlePageSizeChange}
+        onHeaderFooterChange={handleHeaderFooterChange}
+      />
       <div className='size-full overflow-x-auto bg-[#f9fbfd] px-4 print:p-0 print:bg-white print:overflow-visible'>
         <Ruler 
           leftMargin={leftMargin}
