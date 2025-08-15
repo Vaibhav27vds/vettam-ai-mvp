@@ -12,9 +12,12 @@ import Superscript from '@tiptap/extension-superscript'
 import FontFamily from '@tiptap/extension-font-family'
 import { FontSize } from '@tiptap/extension-text-style'
 import Toolbar from './Toolbar'
+import Ruler from './Ruler'
 
 const EditorComponent = () => {
     const [currentPageSize, setCurrentPageSize] = useState({ name: 'A4', width: 816, height: 1056 })
+    const [leftMargin, setLeftMargin] = useState(56)
+    const [rightMargin, setRightMargin] = useState(56)
 
     const editor = useEditor({
          editorProps:{
@@ -50,8 +53,8 @@ const EditorComponent = () => {
               headerLeft: "Header Left",         
               marginTop: 50,           
               marginBottom: 50,        
-              marginLeft: 56,         
-              marginRight: 56,        
+              marginLeft: leftMargin,         
+              marginRight: rightMargin,        
               contentMarginTop: 0,    
               contentMarginBottom: 0, 
             })
@@ -60,6 +63,39 @@ const EditorComponent = () => {
     content: '<p>Start here</p>',
     immediatelyRender: false,
     })
+
+    // Update margins in the editor
+    const updateMargins = (left: number, right: number) => {
+        if (editor) {
+            editor.extensionManager.extensions.forEach((extension) => {
+                if (extension.name === 'paginationPlus') {
+                    extension.options.marginLeft = left
+                    extension.options.marginRight = right
+                }
+            })
+            
+            // Update editor padding
+            const editorContainer = editor.view.dom as HTMLElement
+            if (editorContainer) {
+                editorContainer.style.paddingLeft = `${left}px`
+                editorContainer.style.paddingRight = `${right}px`
+            }
+            
+            // Force editor to recalculate
+            editor.view.updateState(editor.state)
+        }
+    }
+
+    // Handle margin changes from ruler
+    const handleLeftMarginChange = (newLeftMargin: number) => {
+        setLeftMargin(newLeftMargin)
+        updateMargins(newLeftMargin, rightMargin)
+    }
+
+    const handleRightMarginChange = (newRightMargin: number) => {
+        setRightMargin(newRightMargin)
+        updateMargins(leftMargin, newRightMargin)
+    }
 
     const handlePageSizeChange = (newSize: { name: string, width: number, height: number }) => {
         setCurrentPageSize(newSize)
@@ -98,6 +134,12 @@ const EditorComponent = () => {
     <>
       <Toolbar editor={editor} onPaperSizeChange={handlePageSizeChange} />
       <div className='size-full overflow-x-auto bg-[#f9fbfd] px-4 print:p-0 print:bg-white print:overflow-visible'>
+        <Ruler 
+          leftMargin={leftMargin}
+          rightMargin={rightMargin}
+          onLeftMarginChange={handleLeftMarginChange}
+          onRightMarginChange={handleRightMarginChange}
+        />
         <div 
           className="min-w-max flex justify-center py-4 print:py-0 mx-auto print:w-full print:min-w-0"
           style={{ width: `${currentPageSize.width}px` }}
