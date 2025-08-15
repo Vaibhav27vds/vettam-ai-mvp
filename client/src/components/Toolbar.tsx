@@ -21,10 +21,11 @@ import {
   Ruler,
   Droplets
 } from 'lucide-react'
+import { FontSize } from '@tiptap/extension-text-style'
 
 interface ToolbarProps {
   editor: Editor | null
-  onPaperSizeChange?: (size: string) => void
+  onPaperSizeChange?: (size: { name: string, width: number, height: number }) => void
 }
 
 const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
@@ -63,6 +64,15 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
     { value: 'h5', label: 'Heading 5', action: () => editor.chain().focus().toggleHeading({ level: 5 }).run() },
     { value: 'h6', label: 'Heading 6', action: () => editor.chain().focus().toggleHeading({ level: 6 }).run() },
   ]
+
+  // Function to get current heading level
+  const getCurrentHeading = () => {
+    if (editor.isActive('paragraph')) return 'paragraph'
+    for (let level = 1; level <= 6; level++) {
+      if (editor.isActive('heading', { level })) return `h${level}`
+    }
+    return 'paragraph'
+  }
 
   const ToolbarButton = ({ 
     onClick, 
@@ -142,9 +152,9 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
       />
       <Separator />
 
-      {/* Heading Level */}
+      {/* Heading Level - FIXED */}
       <Select
-        value=""
+        value={getCurrentHeading()}
         onChange={(headingValue) => {
           if (headingValue) {
             const heading = headingLevels.find(h => h.value === headingValue)
@@ -271,9 +281,16 @@ const Toolbar = ({ editor, onPaperSizeChange }: ToolbarProps) => {
       {/* Paper Size */}
       <Select
         value=""
-        onChange={(size) => {
-          if (size && onPaperSizeChange) {
-            onPaperSizeChange(size)
+        onChange={(sizeValue) => {
+          if (sizeValue && onPaperSizeChange) {
+            const selectedSize = paperSizes.find(size => size.value === sizeValue)
+            if (selectedSize) {
+              onPaperSizeChange({
+                name: selectedSize.label,
+                width: selectedSize.width,
+                height: selectedSize.height
+              })
+            }
           }
         }}
         options={paperSizes}
