@@ -8,9 +8,11 @@ interface PageToolsProps {
   onPaperSizeChange?: (size: { name: string, width: number, height: number }) => void
   onHeaderFooterAdd: (type: 'headerLeft' | 'headerRight' | 'footerLeft' | 'footerRight') => void
   onWatermarkClick: () => void
+  customPageSizes?: Array<{ name: string, width: number, height: number }>
+  onShowCustomSizeDialog?: () => void
 }
 
-const PageTools = ({ onPaperSizeChange, onHeaderFooterAdd, onWatermarkClick }: PageToolsProps) => {
+const PageTools = ({ onPaperSizeChange, onHeaderFooterAdd, onWatermarkClick, onShowCustomSizeDialog, customPageSizes=[] }: PageToolsProps) => {
   const paperSizes = [
     { value: 'a4', label: 'A4', width: 816, height: 1056 },
     { value: 'a3', label: 'A3', width: 1123, height: 1587 },
@@ -19,24 +21,41 @@ const PageTools = ({ onPaperSizeChange, onHeaderFooterAdd, onWatermarkClick }: P
     { value: 'tabloid', label: 'Tabloid', width: 1056, height: 1632 },
   ]
 
+   const customSizeOptions = customPageSizes.map(size => ({
+    label: `${size.name} (${size.width} × ${size.height})`,
+    value: size.name,
+    width: size.width,
+    height: size.height
+  }))
+
+   const allPaperSizes = [
+    ...paperSizes,
+    ...customSizeOptions,
+    { label: '+ Add Custom Size', value: 'custom', width: 0, height: 0 }
+  ]
+
+
+
   return (
     <div className="flex items-center space-x-1 flex-wrap">
       {/* Paper Size */}
       <Select
         value=""
         onChange={(sizeValue) => {
-          if (sizeValue && onPaperSizeChange) {
-            const selectedSize = paperSizes.find(size => size.value === sizeValue)
-            if (selectedSize) {
+          if (sizeValue === 'custom' && onShowCustomSizeDialog) {
+            onShowCustomSizeDialog()
+          } else if (sizeValue && onPaperSizeChange) {
+            const selectedSize = allPaperSizes.find(size => size.value === sizeValue)
+            if (selectedSize && selectedSize.value !== 'custom') {
               onPaperSizeChange({
-                name: selectedSize.label,
+                name: selectedSize.label.split(' (')[0], // Remove dimensions from display name
                 width: selectedSize.width,
                 height: selectedSize.height
               })
             }
           }
         }}
-        options={paperSizes}
+        options={allPaperSizes}
         placeholder="Paper Size"
       />
       <Separator orientation="vertical" className="h-8 mx-1" />

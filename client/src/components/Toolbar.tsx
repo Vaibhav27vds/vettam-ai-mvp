@@ -7,6 +7,7 @@ import HeaderFooterDialog from './HeaderFooterDialog'
 import WatermarkDialog from './WatermarkDialog'
 import ToolbarButton from './ui/ToolbarButton'
 import PageTools from './PageTool'
+import CustomPageSizeDialog from './ui/customPageSizeDialog'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -20,6 +21,8 @@ interface ToolbarProps {
     position: 'center' | 'diagonal' | 'repeat';
     size: 'small' | 'medium' | 'large';
   }) => void
+  customPageSizes: Array<{ name: string, width: number, height: number }>
+  onAddCustomPageSize: (customSize: { name: string, width: number, height: number }) => void
 }
 
 // Custom vertical separator component
@@ -27,12 +30,15 @@ const VerticalSeparator = () => (
   <div className="w-px h-8 bg-gray-300 mx-1" />
 )
 
-const Toolbar = ({ editor, onPaperSizeChange, onHeaderFooterChange, onWatermarkChange }: ToolbarProps) => {
+const Toolbar = ({ editor, onPaperSizeChange, onHeaderFooterChange, onWatermarkChange, customPageSizes, onAddCustomPageSize }: ToolbarProps) => {
+
   const [activeMode, setActiveMode] = useState<'text' | 'page'>('text')
+
   const [showHeaderFooterDialog, setShowHeaderFooterDialog] = useState<{
     show: boolean;
     type: 'headerLeft' | 'headerRight' | 'footerLeft' | 'footerRight' | null;
   }>({ show: false, type: null })
+
   const [headerFooterInput, setHeaderFooterInput] = useState('')
   const [showWatermarkDialog, setShowWatermarkDialog] = useState(false)
   const [watermarkConfig, setWatermarkConfig] = useState({
@@ -43,6 +49,7 @@ const Toolbar = ({ editor, onPaperSizeChange, onHeaderFooterChange, onWatermarkC
     position: 'center' as 'center' | 'diagonal' | 'repeat',
     size: 'medium' as 'small' | 'medium' | 'large'
   })
+  const [showCustomSizeDialog, setShowCustomSizeDialog] = useState(false)
 
   if (!editor) {
     return null
@@ -92,6 +99,8 @@ const Toolbar = ({ editor, onPaperSizeChange, onHeaderFooterChange, onWatermarkC
               onPaperSizeChange={onPaperSizeChange}
               onHeaderFooterAdd={handleHeaderFooterAdd}
               onWatermarkClick={() => setShowWatermarkDialog(true)}
+              customPageSizes={customPageSizes}
+              onShowCustomSizeDialog={() => setShowCustomSizeDialog(true)}
             />
           )}
         </div>
@@ -111,6 +120,12 @@ const Toolbar = ({ editor, onPaperSizeChange, onHeaderFooterChange, onWatermarkC
         watermarkConfig={watermarkConfig}
         setWatermarkConfig={setWatermarkConfig}
         onWatermarkChange={onWatermarkChange}
+      />
+
+      <CustomPageSizeDialog
+        showDialog={showCustomSizeDialog}
+        setShowDialog={setShowCustomSizeDialog}
+        onAddCustomPageSize={onAddCustomPageSize}
       />
     </>
   )

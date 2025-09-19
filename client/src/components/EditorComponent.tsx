@@ -37,6 +37,8 @@ const EditorComponent = () => {
     })
     const [editorContent, setEditorContent] = useState('<p>Start here</p>')
 
+    const [customPageSizes, setCustomPageSizes] = useState<Array<{ name: string, width: number, height: number }>>([])
+
     const [watermarkConfig, setWatermarkConfig] = useState<WatermarkConfig | null>(null)
 
     const editor = useEditor({
@@ -99,6 +101,8 @@ const EditorComponent = () => {
     }),
   }) || { charactersCount: 0, wordsCount: 0 }
 
+  
+
     const handleHeaderFooterChange = (type: 'headerLeft' | 'headerRight' | 'footerLeft' | 'footerRight', value: string) => {
         const newConfig = { ...headerFooterConfig, [type]: value }
         setHeaderFooterConfig(newConfig)
@@ -112,10 +116,6 @@ const EditorComponent = () => {
         setRightMargin(newRightMargin)
     }
 
-    const handlePageSizeChange = (newSize: { name: string, width: number, height: number }) => {
-        setCurrentPageSize(newSize)
-    }
-
     const handleWatermarkChange = (config: WatermarkConfig) => {
         if (!config.text.trim() && !config.imageUrl.trim()) {
             setWatermarkConfig(null)
@@ -123,6 +123,18 @@ const EditorComponent = () => {
             setWatermarkConfig(config)
         }
     }
+
+     const handlePageSizeChange = (newSize: { name: string, width: number, height: number }) => {
+        setCurrentPageSize(newSize)
+    }
+
+      const handleAddCustomPageSize = (customSize: { name: string, width: number, height: number }) => {
+        const newCustomPageSizes = [...customPageSizes, customSize]
+        setCustomPageSizes(newCustomPageSizes)
+        setCurrentPageSize(customSize)
+    }
+
+    
 
     const getWatermarkStyles = () => {
         if (!watermarkConfig) return {}
@@ -296,6 +308,8 @@ const EditorComponent = () => {
         onPaperSizeChange={handlePageSizeChange}
         onHeaderFooterChange={handleHeaderFooterChange}
         onWatermarkChange={handleWatermarkChange}
+        customPageSizes={customPageSizes}
+        onAddCustomPageSize={handleAddCustomPageSize}
       />
       <div className='size-full overflow-x-auto bg-[#f9fbfd] px-4 print:p-0 print:bg-white print:overflow-visible'>
         <Ruler 
